@@ -26,6 +26,8 @@ print(response)
 """
 ```
 
+Some other examples in `notebooks/TestPipeline.ipynb`
+
 ## TODO
 
-- [ ] Prepare test set and estimate with Claude or ChatGPT API.
+- [ ] Prepare test set and evaluate with Claude or ChatGPT API.
