@@ -1,6 +1,10 @@
 # ModifiedBeamSampler
 Modified Beam Search with periodical restart
 
+<a target="_blank" href="https://colab.research.google.com/github/attashe/ModifiedBeamSampler/blob/main/notebooks/TestColab.ipynb">
+  <img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/>
+</a>
+
 ## Description
 
 Sampler has `n_beams` paralllel independent sampling paths, every `beam_len` tokens we choose beam with best score and start sampling new beams from best previous beam. Better works with high temperature (~1.5). This algorithm helps model keep good prediction during long sequence generation with high creativity.
