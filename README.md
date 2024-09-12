@@ -21,8 +21,9 @@ Tell me joke about Machine Learning Researcher.
 <|im_start|>assistant"""
 
 sampler = RecursiveSampler(model, tokenizer)
+streamer = transformers.TextStreamer(tokenizer)  # Optional
 
-response = sampler.generate(prompts[0], max_tokens=512, n_beams=3, beam_len=5, temperature=1.5, top_k=50, min_p=0.1)
+response = sampler.generate(prompts[0], max_tokens=512, n_beams=3, beam_len=5, temperature=1.5, top_k=50, min_p=0.1, streamer=streamer)
 print(response)
 
 """

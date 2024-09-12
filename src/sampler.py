@@ -1,6 +1,7 @@
 from typing import List, Optional
 
 import torch
+import transformers
 import numpy as np
 from .utils import _apply_top_k_top_p, _apply_min_p, _multinomial
 
@@ -12,7 +13,8 @@ class RecursiveSampler:
 
     def recursive_sampler_step(self, outputs, beam_len=5, temp=0.9, top_k=50, top_p=0.9, min_p=0.0, do_top_k_top_p=True, do_min_p=True,
                                used_tokens: Optional[List[int]] = None,
-                               terminators: Optional[List[int]] = None, generator: torch.Generator = None) -> int:
+                               terminators: Optional[List[int]] = None,
+                               generator: torch.Generator = None):
         sum_score = 0
         terminate = -1
         
@@ -62,7 +64,9 @@ class RecursiveSampler:
         return outputs, sum_score, terminate
 
     def generate(self, text, max_tokens=256, n_beams=2, beam_len=5, temperature=0.8,
-                                   top_k=5, top_p=1.0, do_min_p=True, min_p=0.1):
+                 top_k=5, top_p=1.0, do_min_p=True, min_p=0.1,
+                 streamer: Optional[transformers.TextStreamer] = None,
+                ):
         # print(f'Generating recursive completion for text: {text}')
         # Tokenize the input text.
         inputs = self.tokenizer.encode(
@@ -114,6 +118,9 @@ class RecursiveSampler:
             else:
                 max_score = np.argmax(scores)
                 better_out = beams[max_score]
+
+                if streamer:
+                    streamer.put(better_out['sequences'][:, -beam_len:])
                 
             # Update net_inputs to the better output
             net_inputs = better_out
@@ -123,5 +130,8 @@ class RecursiveSampler:
         # Decode the generated text.
         completion_text = self.tokenizer.decode(net_inputs['sequences'][0], skip_special_tokens=True, clean_up_tokenization_space=True)
         # print(f'Generated completion: {completion_text}')
+
+        if streamer:
+            streamer.end()
         
         return completion_text
