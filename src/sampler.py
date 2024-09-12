@@ -11,6 +11,7 @@ class RecursiveSampler:
         self.tokenizer = tokenizer
 
     def recursive_sampler_step(self, outputs, beam_len=5, temp=0.9, top_k=50, top_p=0.9, min_p=0.0, do_top_k_top_p=True, do_min_p=True,
+                               used_tokens: Optional[List[int]] = None,
                                terminators: Optional[List[int]] = None, generator: torch.Generator = None) -> int:
         sum_score = 0
         terminate = -1
@@ -18,6 +19,8 @@ class RecursiveSampler:
         for i in range(beam_len):
             outputs = self.model.generate(
                 outputs['sequences'],
+                temperature=None,
+                top_p=None,
                 past_key_values=outputs.get("past_key_values"),
                 max_new_tokens=1,
                 pad_token_id=self.tokenizer.eos_token_id,
@@ -29,6 +32,10 @@ class RecursiveSampler:
             logits = outputs['scores'][0]
             logits.div_(temp)
             probs = torch.softmax(logits, dim=-1, dtype=torch.float)
+
+            if used_tokens:
+                if i == 0:
+                    probs[:, used_tokens] = -float('inf')
     
             if do_top_k_top_p:
                 probs = _apply_top_k_top_p(probs, top_k, top_p)
@@ -77,12 +84,15 @@ class RecursiveSampler:
         
         for _ in range(max_tokens // beam_len + 1):
             beams = {}
+            used_tokens = []
             for i in range(n_beams):
                 test_out_1, score1, terminate1 = self.recursive_sampler_step(net_inputs, beam_len=beam_len,
                                                                         temp=temperature, top_k=top_k, top_p=top_p, min_p=min_p,
                                                                         do_top_k_top_p=do_top_k_top_p, do_min_p=do_min_p,
+                                                                        used_tokens=used_tokens,
                                                                         terminators=[self.tokenizer.eos_token_id],
                                                                         generator=g)
+                used_tokens.append(test_out_1['sequences'][0, -beam_len].item())
                 beams[i] = test_out_1
                 scores[i] = score1
                 terminates[i] = terminate1
